@@ -48,4 +48,4 @@ READYTOFEED = False
 FEEDINTERVAL = 28800  # 28800  # This translates to 8 hours in seconds
 FEEDFILE = "/home/pi/pf20/data/lastFeed"
 CUPSTOFEED: int = 1
-MOTORTIME = CUPSTOFEED * 23  # It takes 23 seconds of motor turning (~1.75 rotations) to get 1 cup of feed
+MOTORTIME = CUPSTOFEED * 30  # It takes 23 seconds of motor turning (~1.75 rotations) to get 1 cup of feed

@@ -77,8 +77,8 @@ def webserver_thread(lcd_text_q):
         @app.route("/FEED")
         def feed():
             global lastFeed
-            email_to=EMAIL_FROM
-            input_method='API'
+            email_to = EMAIL_FROM
+            input_method = 'API'
             if 'email_to' in request.args:
                 email_to = request.args.get('email_to')
             if 'input_method' in request.args:
@@ -125,8 +125,8 @@ def webserver_thread(lcd_text_q):
         @app.route("/PIC")
         def pic():
             printdebug(1, "Taking pic")
-            email_to=EMAIL_FROM
-            input_method='API'
+            email_to = EMAIL_FROM
+            input_method = 'API'
             if 'email_to' in request.args:
                 email_to = request.args.get('email_to')
             if 'input_method' in request.args:
@@ -148,8 +148,8 @@ def webserver_thread(lcd_text_q):
         @app.route("/STATUS")
         def status():
             global LastFeed
-            email_to=EMAIL_FROM
-            input_method='API'
+            email_to = EMAIL_FROM
+            input_method = 'API'
             if 'email_to' in request.args:
                 email_to = request.args.get('email_to')
             if 'input_method' in request.args:
@@ -190,8 +190,27 @@ def feedbutton_thread():
     def feedbutton_callback(channel):
         mailer.processKeyword("FEED", EMAIL_FROM, "button")
         printdebug(1, "Got a feedbutton press")
+
     printdebug(1, "yo, got to the feedbutton thread")
-    GPIO.add_event_detect(FEEDBUTTONPIN, GPIO.RISING, callback=feedbutton_callback)  # Setup event on pin FEEDBUTTONPIN rising edge
+    GPIO.add_event_detect(FEEDBUTTONPIN, GPIO.RISING,
+                          callback=feedbutton_callback)  # Setup event on pin FEEDBUTTONPIN rising edge
+    while True:
+        pass
+
+
+def resetbutton_thread():
+    def resetbutton_callback(channel):
+        global lastFeed
+        lcd_text_q.put("Resetting...")
+        time.sleep(2)
+        lastFeed = time.time() - FEEDINTERVAL + 5
+        printdebug(1, lastFeed)
+        saveLastFeed()
+        printdebug(1, "Got a reset button press")
+
+    printdebug(1, "yo, got to the resetbutton thread")
+    GPIO.add_event_detect(RESETBUTTONPIN, GPIO.RISING,
+                          callback=resetbutton_callback)  # Setup event on pin RESETBUTTONPIN rising edge
     while True:
         pass
 
@@ -220,14 +239,17 @@ if __name__ == "__main__":
         threadWebServer = threading.Thread(target=webserver_thread, args=[lcd_text_q])
         # Create the email thread
         threadMail = threading.Thread(target=checkmail_thread, args=())
-        # Create the button check thread
-        threadButton = threading.Thread(target=feedbutton_thread, args=())
+        # Create the feed button check thread
+        threadFeedButton = threading.Thread(target=feedbutton_thread, args=())
+        # Create the reset button check thread
+        threadResetButton = threading.Thread(target=resetbutton_thread, args=())
 
         # Start all the threads
         threadLCD.start()
         threadWebServer.start()
         threadMail.start()
-        threadButton.start()
+        threadFeedButton.start()
+        threadResetButton.start()
 
     except KeyboardInterrupt:
         run_event.clear()
@@ -239,8 +261,10 @@ if __name__ == "__main__":
         print("Web thread closed")
         threadMail.join()
         print("Mail thread closed")
-        threadButton.join()
-        print("Button thread closed")
+        threadFeedButton.join()
+        print("Feed Button thread closed")
+        threadResetButton.join()
+        print("Reset Button thread closed")
 
         GPIO.cleanup()
         print("GPIO cleaned up")
