@@ -25,7 +25,7 @@ GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.modify',
           ]
 EMAIL_FROM = 'feedlucky@gmail.com'
 VOICE_EMAIL="ifttt.com"
-MAILCHECK_INTERVAL=10
+MAILCHECK_INTERVAL=30
 ATTACHMENT_DIR = "/tmp/"
 ATTACHMENT_FILE = "picfile.jpg"
 API_ENDPOINT = "http://localhost:5000"

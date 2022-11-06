@@ -205,7 +205,7 @@ def resetbutton_thread():
         time.sleep(2)
         lastFeed = time.time() - FEEDINTERVAL + 5
         printdebug(1, lastFeed)
-        saveLastFeed()
+        saveLastFeed(FEEDFILE, lastFeed)
         printdebug(1, "Got a reset button press")
 
     printdebug(1, "yo, got to the resetbutton thread")
