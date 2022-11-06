@@ -81,6 +81,7 @@ def initialize():
     else:
         printdebug(1, "Could not find the file during initialization")
         lastFeed = time.time()
+        printdebug(1, "Initializing saveLastFeed from initialize()")
         saveLastFeed(FEEDFILE, lastFeed)
 
     return lastFeed

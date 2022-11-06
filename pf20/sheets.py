@@ -40,7 +40,7 @@ def update_sheet(input_method):
     values = result.get('values', [])
 
     printdebug( 1, 'The spreadsheet has ' + str(len(values)) + ' rows')
-    printdebug(1, values )
+    # printdebug(1, values )
     if not values:
         printdebug(1, 'No data found.')
     else:

@@ -9,6 +9,7 @@ import queue
 import re
 import threading
 import time
+from time import sleep
 
 import RPi.GPIO as GPIO
 from flask import Flask, request
@@ -19,6 +20,7 @@ import my_rpi
 import pfconfig
 from my_debug import printdebug
 from my_rpi import saveLastFeed, ledlight
+from button_handler import ButtonHandler
 from pfconfig import *
 import sheets
 
@@ -88,6 +90,7 @@ def webserver_thread(lcd_text_q):
             # Check if we are ready to feed
             if itsTimeToFeed():
                 lastFeed = time.time()
+                printdebug(1, "calling saveLastFeed from web server app.route FEED")
                 saveLastFeed(FEEDFILE, lastFeed)
                 printdebug(1, "Feeding now and sending email to " + email_to)
                 # Update the LCD message
@@ -185,32 +188,35 @@ def lcd_thread(lcd_display, lcd_text_q):
         lcd.lcd_update(lcd_display, lcd_text_q, lastFeed)
         time.sleep(.1)
 
+def feedbutton_callback(channel):
+    mailer.processKeyword("FEED", EMAIL_FROM, "button")
+    printdebug(1, "Got a feedbutton press")
 
 def feedbutton_thread():
-    def feedbutton_callback(channel):
-        mailer.processKeyword("FEED", EMAIL_FROM, "button")
-        printdebug(1, "Got a feedbutton press")
+
 
     printdebug(1, "yo, got to the feedbutton thread")
-    GPIO.add_event_detect(FEEDBUTTONPIN, GPIO.RISING,
-                          callback=feedbutton_callback)  # Setup event on pin FEEDBUTTONPIN rising edge
+    # GPIO.add_event_detect(FEEDBUTTONPIN, GPIO.RISING,
+    #                      callback=feedbutton_callback)  # Setup event on pin FEEDBUTTONPIN rising edge
+    ButtonHandler(FEEDBUTTONPIN, GPIO.RISING, feedbutton_callback)
+
     while True:
         pass
 
-
+def resetbutton_callback(channel):
+    global lastFeed
+    lcd_text_q.put("Resetting...")
+    time.sleep(2)
+    lastFeed = time.time() - FEEDINTERVAL + 5
+    printdebug(1, "about to save lastFeed from reset button")
+    saveLastFeed(FEEDFILE, lastFeed)
+    printdebug(1, "Got a reset button press")
 def resetbutton_thread():
-    def resetbutton_callback(channel):
-        global lastFeed
-        lcd_text_q.put("Resetting...")
-        time.sleep(2)
-        lastFeed = time.time() - FEEDINTERVAL + 5
-        printdebug(1, lastFeed)
-        saveLastFeed(FEEDFILE, lastFeed)
-        printdebug(1, "Got a reset button press")
 
     printdebug(1, "yo, got to the resetbutton thread")
-    GPIO.add_event_detect(RESETBUTTONPIN, GPIO.RISING,
-                          callback=resetbutton_callback)  # Setup event on pin RESETBUTTONPIN rising edge
+    #GPIO.add_event_detect(RESETBUTTONPIN, GPIO.RISING,
+    #                      callback=resetbutton_callback)  # Setup event on pin RESETBUTTONPIN rising edge
+    ButtonHandler(RESETBUTTONPIN, GPIO.RISING, resetbutton_callback)
     while True:
         pass
 
@@ -240,16 +246,20 @@ if __name__ == "__main__":
         # Create the email thread
         threadMail = threading.Thread(target=checkmail_thread, args=())
         # Create the feed button check thread
-        threadFeedButton = threading.Thread(target=feedbutton_thread, args=())
+        #threadFeedButton = threading.Thread(target=feedbutton_thread, args=())
         # Create the reset button check thread
-        threadResetButton = threading.Thread(target=resetbutton_thread, args=())
+        #threadResetButton = threading.Thread(target=resetbutton_thread, args=())
 
         # Start all the threads
         threadLCD.start()
         threadWebServer.start()
         threadMail.start()
-        threadFeedButton.start()
-        threadResetButton.start()
+        # threadFeedButton.start()
+        # threadResetButton.start()
+
+        ButtonHandler(FEEDBUTTONPIN, GPIO.FALLING, feedbutton_callback)
+        ButtonHandler(RESETBUTTONPIN, GPIO.FALLING, resetbutton_callback)
+
 
     except KeyboardInterrupt:
         run_event.clear()
@@ -261,10 +271,10 @@ if __name__ == "__main__":
         print("Web thread closed")
         threadMail.join()
         print("Mail thread closed")
-        threadFeedButton.join()
-        print("Feed Button thread closed")
-        threadResetButton.join()
-        print("Reset Button thread closed")
+        #threadFeedButton.join()
+        #print("Feed Button thread closed")
+        #threadResetButton.join()
+        #print("Reset Button thread closed")
 
         GPIO.cleanup()
         print("GPIO cleaned up")
